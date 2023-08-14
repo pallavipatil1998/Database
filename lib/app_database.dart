@@ -9,6 +9,11 @@ class AppDatabase{
   AppDatabase._();
   static final AppDatabase db=AppDatabase._();
 
+  static final Note_Table= "note";
+  static final Note_column_ID="note_id";
+  static final Note_column_Title="title";
+  static final Note_column_Desc="desc";
+
   //create database variable
   Database? _database;
 
@@ -30,9 +35,9 @@ class AppDatabase{
    return openDatabase(
      dbPath,
      version: 1,
-     onCreate:(db,version){
+     onCreate:(db,version)async{
        //create table here
-       db.execute("Create table note(note_id integer primary Key autoincrement,title text,desc text) ");
+       db.execute("Create table $Note_Table($Note_column_ID integer primary Key autoincrement,$Note_column_Title text,$Note_column_Desc text) ");
      }
    );
   }
@@ -40,7 +45,7 @@ class AppDatabase{
 
   Future<bool>addNote(String titl,String des )async{
   var d= await getDB();
-    int rowsEffect= await d.insert("note", {"title":titl,"desc":des});
+    int rowsEffect= await d.insert(Note_Table, {Note_column_Title:titl,Note_column_Desc:des});
 
     if(rowsEffect>0){
       return true;
