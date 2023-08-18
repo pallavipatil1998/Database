@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:my_database/app_database.dart';
+import 'package:my_database/note_provider.dart';
+import 'package:my_database/second_page.dart';
+import 'package:provider/provider.dart';
 
 import 'note_model.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(ChangeNotifierProvider(
+      create: (context) => NoteProvider(),
+    child: MyApp(),
+  ));
 }
 
 class MyApp extends StatelessWidget {
@@ -33,150 +39,52 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late AppDatabase myDB;
   List<NoteModel> arrNotes=[];
 
   var titleController=TextEditingController();
   var descController=TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    myDB=AppDatabase.db;
-   getAllNotes();
-  }
-
   //get all notes
-  getAllNotes()async{
-    arrNotes=await myDB.fetchAllNotes();
-    setState(() {});
+  getAllNotes(BuildContext context)async{
+    context.read<NoteProvider>().fetchNotes();
   }
 
-  //add note
-  enterNote(String titl,String des)async {
-    bool check = await myDB.addNote(NoteModel(title: titl, desc: des));
-    if (check) {
-      arrNotes = await myDB.fetchAllNotes();
-      setState(() {
-      });
-    }
-  }
   @override
   Widget build(BuildContext context) {
+    getAllNotes(context);
     return Scaffold(
       appBar: AppBar(title: Text(widget.title),),
-      body: ListView.builder(
-        itemCount: arrNotes.length,
-          itemBuilder:(ctx ,index){
-           return InkWell(
-             onTap: (){
-               titleController.text=arrNotes[index].title;
-               descController.text=arrNotes[index].desc;
+      body: Consumer<NoteProvider>(
+        builder: (_,provider,__){
+          return  ListView.builder(
+              itemCount:provider.getNotes().length,
 
-               showModalBottomSheet(
-                   context: context,
-                   builder: (cntext){
-                     return Container(
-                       color: Colors.pinkAccent.shade200,
-                       margin: EdgeInsets.all(20),
-                       height: 400,
-                       child: Column(
-                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                         children: [
-                           Text("Update Note",style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                           TextField(
-                             controller:titleController ,
-                             decoration: InputDecoration(
-                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(21),),
-                                 hintText: "Enter Title",
-                                 label: Text("Title")
-                             ),
-                           ),
-                           TextField(
-                             controller:descController ,
-                             decoration: InputDecoration(
-                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(21)),
-                                 hintText: "Enter desc",
-                                 label: Text("Desc")
-                             ),
-                           ),
-                           ElevatedButton(
-                               onPressed: ()async{
-                                 var mtitle =titleController.text.toString();
-                                 var mdesc=descController.text.toString();
-                                 await myDB.updateNote(NoteModel(id: arrNotes[index].id,title: mtitle, desc: mdesc));
+              itemBuilder:(ctx ,index){
+                var currData=provider.getNotes()[index];
 
-                                 getAllNotes();
-                                 titleController.clear();
-                                 descController.text="";
-                                 Navigator.pop(context);
-                               },
-                               child: Text("Update")
-                           )
-                         ],
-                       ),
-                     ) ;
-                   }
-               );
-             },
-             child: ListTile(
-               title: Text(arrNotes[index].title),
-               subtitle: Text('${arrNotes[index].desc}'),
-               trailing: InkWell(
-                 onTap: ()async{
-                   await myDB.deleteNote(arrNotes[index].id!);
-                   getAllNotes();
-                 },
-                   child: Icon(Icons.delete,color: Colors.red,)),
-             ),
-           );
+                return InkWell(
+                  onTap: (){
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => AddNotePage(isUpdate: true,title: currData.title,desc: currData.desc),));
+                  },
+                  child: ListTile(
+                    title: Text(currData.title),
+                    subtitle: Text(currData.desc),
+                    trailing: InkWell(
+                        onTap: ()async{
+                         context.read<NoteProvider>().deleteNotes(index);
+                        },
+                        child: Icon(Icons.delete,color: Colors.red,)),
+                  ),
+                );
 
-          }
+              }
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: (){
-        showModalBottomSheet(
-            context: context,
-            builder: (cntext){
-              return Container(
-                margin: EdgeInsets.all(20),
-                height: 400,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Text("Add Note",style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    TextField(
-                      controller:titleController ,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(21),),
-                        hintText: "Enter Title",
-                        label: Text("Title")
-                      ),
-                    ),
-                    TextField(
-                      controller:descController ,
-                      decoration: InputDecoration(
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(21)),
-                          hintText: "Enter desc",
-                          label: Text("Desc")
-                      ),
-                    ),
-                    ElevatedButton(
-                        onPressed: (){
-                          var title =titleController.text.toString();
-                          var desc=descController.text.toString();
-                         enterNote(title,desc);
-                         titleController.clear();
-                         descController.text="";
-                             Navigator.pop(context);
-                        },
-                        child: Text("Add")
-                    )
-                  ],
-                ),
-              ) ;
-            }
-        );
+          Navigator.push(context, MaterialPageRoute(builder: (context) => AddNotePage(isUpdate: false,),));
+
         },
         child: Icon(Icons.add),
       ),

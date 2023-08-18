@@ -25,7 +25,10 @@ class AppDatabase{
     if(_database != null){
       return _database!;
     }else{
-      return await initDB();
+      // return await initDB();
+
+      _database=await initDB();
+      return _database!;
     }
   }
 
